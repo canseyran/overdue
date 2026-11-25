@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Overdue logo">
+  <title>Overdue</title>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a2c2f"/>
+      <stop offset="1" stop-color="#17181a"/>
+    </linearGradient>
+    <!-- clears a ring around the clock badge, so it reads as cut out of the clipboard -->
+    <mask id="cutout">
+      <rect width="256" height="256" fill="#fff"/>
+      <circle cx="178" cy="182" r="54" fill="#000"/>
+    </mask>
+  </defs>
+
+  <!-- app tile -->
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#tile)"/>
+  <rect x="8.75" y="8.75" width="238.5" height="238.5" rx="55.25" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5"/>
+
+  <g mask="url(#cutout)">
+  <!-- clipboard -->
+  <rect x="62" y="62" width="112" height="140" rx="16" fill="none" stroke="#ece6d6" stroke-width="12"/>
+  <rect x="94" y="46" width="48" height="30" rx="9" fill="#ece6d6"/>
+
+  <!-- task lines -->
+  <path d="M86 108 l9 9 l17 -19" fill="none" stroke="#ece6d6" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="122" y="104" width="30" height="10" rx="5" fill="#ece6d6" opacity="0.85"/>
+  <rect x="86" y="138" width="40" height="10" rx="5" fill="#ece6d6" opacity="0.55"/>
+
+  </g>
+
+  <!-- overdue clock badge -->
+  <circle cx="178" cy="182" r="44" fill="#f0a23b"/>
+  <path d="M178 156 V182 L196 194" fill="none" stroke="#1f2022" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

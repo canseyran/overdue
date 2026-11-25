@@ -1,0 +1,48 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Unit tests (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest supported LTS and the current release.
+        node: [22, 26]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Run tests
+        run: node --test tests/*.test.js
+
+  manifest:
+    name: Manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # The checks `omarchy plugin validate` makes that apply without Omarchy
+      # installed: valid JSON, schema version, required fields, an id outside
+      # the reserved omarchy.* namespace, and entry points that exist inside
+      # the plugin folder.
+      - name: Validate manifest.json
+        run: |
+          jq -e '.schemaVersion == 1' manifest.json
+          for field in id name version kinds entryPoints; do
+            jq -e --arg f "$field" 'has($f)' manifest.json > /dev/null || { echo "missing $field"; exit 1; }
+          done
+          id=$(jq -r .id manifest.json)
+          [[ $id =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && $id != omarchy.* ]] || { echo "invalid id $id"; exit 1; }
+          jq -r '.entryPoints[]' manifest.json | while read -r entry; do
+            [[ $entry != /* && $entry != *..* && -f $entry && ! -L $entry ]] || { echo "bad entry point $entry"; exit 1; }
+          done
+          echo "manifest.json OK"

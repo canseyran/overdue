@@ -1,0 +1,205 @@
+{
+  "action.add": "Add task",
+  "action.complete": "Complete",
+  "action.delete": "Delete",
+  "action.deleteForever": "Delete permanently",
+  "action.done": "Complete",
+  "action.edit": "Edit",
+  "action.reschedule": "Reschedule",
+  "action.restore": "Restore",
+  "action.snooze": "Snooze all %1",
+  "day.today": "Today",
+  "day.tomorrow": "Tomorrow",
+  "day.yesterday": "Yesterday",
+  "due.daysAgo": {
+    "one": "%1 day ago",
+    "other": "%1 days ago"
+  },
+  "due.hoursAgo": {
+    "one": "%1 hour ago",
+    "other": "%1 hours ago"
+  },
+  "due.inDays": {
+    "one": "in %1 day",
+    "other": "in %1 days"
+  },
+  "due.inHours": {
+    "one": "in %1 hour",
+    "other": "in %1 hours"
+  },
+  "due.inMinutes": {
+    "one": "in %1 minute",
+    "other": "in %1 minutes"
+  },
+  "due.inUnderMinute": "in under a minute",
+  "due.minutesAgo": {
+    "one": "%1 minute ago",
+    "other": "%1 minutes ago"
+  },
+  "due.none": "No due date",
+  "due.now": "now",
+  "empty.archived": "No archived tasks. Deleted tasks are kept here.",
+  "empty.done": "No completed tasks.",
+  "empty.tasks": "No open tasks.",
+  "form.cancel": "Cancel",
+  "form.description": "Description",
+  "form.descriptionPlaceholder": "Bring the signed contract",
+  "form.due": "Due",
+  "form.dueNotRecognised": "Not recognised. Examples: tomorrow 9am, 27 nov 15:00, every monday",
+  "form.duePlaceholder": "friday 9am",
+  "form.save": "Save",
+  "form.task": "Task",
+  "form.taskPlaceholder": "Pay rent #home",
+  "form.titleMissing": "A task needs a title",
+  "group.nodate": "No due date",
+  "group.today": "Today",
+  "group.upcoming": "Upcoming",
+  "hint.withKey": "%1 (%2)",
+  "key.enter": "Enter",
+  "key.space": "Space",
+  "key.tab": "Tab / Shift+Tab",
+  "lifecycle.archived": {
+    "one": "Archived tasks are deleted after %1 day.",
+    "other": "Archived tasks are deleted after %1 days."
+  },
+  "lifecycle.archivedKept": "Archived tasks are kept until you delete them.",
+  "lifecycle.done": {
+    "one": "Completed tasks move to Archived after %1 day.",
+    "other": "Completed tasks move to Archived after %1 days."
+  },
+  "lifecycle.doneKept": "Completed tasks stay here until you archive them.",
+  "meta.archivedShort": "Archived",
+  "meta.completedShort": "Completed",
+  "notify.archived": "Archived",
+  "notify.body": "%1 · %2",
+  "notify.done": "Completed",
+  "notify.hiddenDue": "Task due",
+  "notify.hiddenSoon": "Task due soon",
+  "notify.hiddenTask": "Task",
+  "notify.removed": "Deleted",
+  "notify.rescheduled": "Rescheduled",
+  "option.friday": "Friday",
+  "option.last": "Last day",
+  "option.monday": "Monday",
+  "option.sunday": "Sunday",
+  "panel.addPlaceholder": "Pay rent friday 9am #home",
+  "panel.clearSearch": "Clear search",
+  "panel.confirmDelete": "Press d again, or click delete again, to delete permanently",
+  "panel.noMatch": "No matching tasks",
+  "panel.notUnderstood": "Date not recognised. Examples: tomorrow 9am, in 2h, none.",
+  "panel.reschedulePlaceholder": "tomorrow 9am",
+  "panel.search": "Search",
+  "panel.searchPlaceholder": "rent #home",
+  "panel.title": "Tasks",
+  "preview.noDate": "No due date, no reminders",
+  "preview.title": "Task",
+  "quickAdd.hint": "Enter to save · Shift+Enter to save and add another · Esc to cancel",
+  "quickAdd.placeholder": "Send invoice friday 10am #work",
+  "quickAdd.saved": "Added",
+  "recur.day": {
+    "one": "every day",
+    "other": "every %1 days"
+  },
+  "recur.month": {
+    "one": "every month",
+    "other": "every %1 months"
+  },
+  "recur.week": {
+    "one": "every week",
+    "other": "every %1 weeks"
+  },
+  "recur.weekOn": "every %1",
+  "recur.weekday": "every weekday",
+  "recur.year": {
+    "one": "every year",
+    "other": "every %1 years"
+  },
+  "rel.in": "in %1",
+  "rel.overdue": "%1 overdue",
+  "review.later": "Remind in %1",
+  "review.more": {
+    "one": "and %1 more",
+    "other": "and %1 more"
+  },
+  "review.nodate": {
+    "one": "%1 with no due date",
+    "other": "%1 with no due date"
+  },
+  "review.open": "Open tasks",
+  "review.overdue": {
+    "one": "%1 overdue",
+    "other": "%1 overdue"
+  },
+  "review.title": "Daily review",
+  "review.today": {
+    "one": "%1 due today",
+    "other": "%1 due today"
+  },
+  "review.upcoming": {
+    "one": "%1 upcoming",
+    "other": "%1 upcoming"
+  },
+  "settings.afternoonHour": "Afternoon (hour)",
+  "settings.afternoonHour.desc": "Example: \"this afternoon\" is due at %1.",
+  "settings.and": "and",
+  "settings.back": "Back to tasks",
+  "settings.bareHoursPm": "Read \"at 1\" to \"at 6\" as afternoon",
+  "settings.bareHoursPm.desc": "On: \"at 5\" is 17:00. Off: \"at 5\" is 05:00.",
+  "settings.dates": "Dates",
+  "settings.defaultHour": "Default time (hour)",
+  "settings.defaultHour.desc": "For a date without a time. Example: \"tomorrow\" is due tomorrow at %1. If that time has already passed today, \"today\" uses the next full hour.",
+  "settings.display": "Bar",
+  "settings.endOfWeek": "End of week",
+  "settings.endOfWeek.desc": "What \"end of week\" and \"eow\" mean.",
+  "settings.eveningHour": "Evening (hour)",
+  "settings.eveningHour.desc": "Example: \"friday evening\" is due at %1.",
+  "settings.groupTasks": "Group tasks by due date",
+  "settings.groupTasks.desc": "On: Tasks shows Today, Upcoming and No due date. Off: one list, ordered by due date.",
+  "settings.hideTitles": "Hide titles in reminders",
+  "settings.hideTitles.desc": "Reminders say \"Task due\" instead of the title, and the daily review gives counts only. Useful when sharing your screen.",
+  "settings.invalid": "Not recognised. Use the format shown; the previous value is kept.",
+  "settings.keepArchivedDays": "Delete archived tasks after (days)",
+  "settings.keepArchivedDays.desc": "Archived tasks are deleted permanently after this many days. 0 keeps them.",
+  "settings.keepDoneDays": "Archive completed tasks after (days)",
+  "settings.keepDoneDays.desc": "Completed tasks move from Completed to Archived after this many days. 0 keeps them in Completed.",
+  "settings.lists": "Lists",
+  "settings.morningHour": "Morning (hour)",
+  "settings.morningHour.desc": "Example: \"tomorrow morning\" is due at %1.",
+  "settings.nagEveryMin": "Repeat interval (minutes)",
+  "settings.nagEveryMin.desc": "How often an overdue task reminds you again, until you complete or reschedule it. Example: due at 09:00, reminders at %1 and so on.",
+  "settings.nightHour": "Tonight (hour)",
+  "settings.nightHour.desc": "Example: \"tonight\" is due at %1.",
+  "settings.quietHours": "Quiet hours",
+  "settings.quietHours.desc": "No reminders in this window; held reminders are sent when it ends. Format HH:MM-HH:MM. Leave empty for none.",
+  "settings.quietHours.placeholder": "22:00-08:00",
+  "settings.remindAheadMin": "Remind ahead (minutes)",
+  "settings.remindAheadMin.desc": "An extra reminder this long before a task is due, in addition to the one when it is due. Example: due at 09:00, reminders at %1. If a task is due sooner than this, only the due reminder is sent. 0 turns this off.",
+  "settings.reminders": "Reminders",
+  "settings.reviewTime": "Daily review",
+  "settings.reviewTime.desc": "Once a day, a summary of open tasks, including tasks with no due date, which never send reminders. Format HH:MM. Leave empty to turn it off.",
+  "settings.reviewTime.placeholder": "09:00",
+  "settings.showCount": "Show count on the bar icon",
+  "settings.showCount.desc": "The number of overdue tasks, or of tasks due today when none are overdue.",
+  "settings.snoozeMin": "Snooze length (minutes)",
+  "settings.snoozeMin.desc": "Snoozing stops all reminders and the daily review until it ends. Used by the snooze button on reminders, s in the task list, and \"Remind in\" on the daily review.",
+  "settings.title": "Settings",
+  "settings.weekStart": "First day of the week",
+  "settings.weekStart.desc": "For \"next week\" and \"next friday\".",
+  "snooze.for": "Snooze all reminders for %1",
+  "snooze.resume": "Resume reminders",
+  "snooze.until": "Reminders snoozed until %1",
+  "tab.archived": "Archived",
+  "tab.done": "Completed",
+  "tab.tasks": "Tasks",
+  "when.dayTime": "%1 %2",
+  "widget.idle": "No tasks due",
+  "widget.overdue": {
+    "one": "%1 overdue",
+    "other": "%1 overdue"
+  },
+  "widget.today": {
+    "one": "%1 due today",
+    "other": "%1 due today"
+  },
+  "widget.unavailable": "The Overdue service is not running"
+}

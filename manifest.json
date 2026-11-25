@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "id": "canseyran.overdue",
+  "name": "Overdue",
+  "version": "0.1.0",
+  "author": "canseyran",
+  "license": "MIT",
+  "description": "Tasks with natural-language quick add that nag you until they're done.",
+  "kinds": [
+    "service",
+    "bar-widget",
+    "overlay"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml",
+    "overlay": "QuickAdd.qml"
+  },
+  "barWidget": {
+    "displayName": "Overdue",
+    "description": "Tasks that nag you until they're done: due and overdue counts, task list, quick add.",
+    "category": "Productivity",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "showCount": true,
+      "nagEveryMin": 10,
+      "snoozeMin": 30,
+      "reviewTime": "09:00",
+      "quietHours": "",
+      "remindAheadMin": 0
+    },
+    "schema": [
+      {
+        "key": "showCount",
+        "type": "boolean",
+        "label": "Show count on the bar icon",
+        "defaultValue": true
+      },
+      {
+        "key": "nagEveryMin",
+        "type": "integer",
+        "label": "Repeat reminders every (minutes)",
+        "min": 1,
+        "max": 1440,
+        "step": 1,
+        "defaultValue": 10
+      },
+      {
+        "key": "remindAheadMin",
+        "type": "integer",
+        "label": "Remind ahead (minutes, 0 = off)",
+        "min": 0,
+        "max": 1440,
+        "step": 1,
+        "defaultValue": 0
+      },
+      {
+        "key": "snoozeMin",
+        "type": "integer",
+        "label": "Snooze length (minutes)",
+        "min": 1,
+        "max": 10080,
+        "step": 1,
+        "defaultValue": 30
+      },
+      {
+        "key": "hideTitles",
+        "type": "boolean",
+        "label": "Hide titles in reminders",
+        "defaultValue": false
+      },
+      {
+        "key": "reviewTime",
+        "type": "string",
+        "label": "Daily review time, HH:MM (empty = off)",
+        "defaultValue": "09:00"
+      },
+      {
+        "key": "quietHours",
+        "type": "string",
+        "label": "Quiet hours, HH:MM-HH:MM (empty = none)",
+        "defaultValue": ""
+      },
+      {
+        "key": "defaultHour",
+        "type": "integer",
+        "label": "Default time for dates without a time (hour)",
+        "min": 0,
+        "max": 23,
+        "step": 1,
+        "defaultValue": 9
+      },
+      {
+        "key": "morningHour",
+        "type": "integer",
+        "label": "Morning (hour)",
+        "min": 0,
+        "max": 23,
+        "step": 1,
+        "defaultValue": 9
+      },
+      {
+        "key": "afternoonHour",
+        "type": "integer",
+        "label": "Afternoon (hour)",
+        "min": 0,
+        "max": 23,
+        "step": 1,
+        "defaultValue": 14
+      },
+      {
+        "key": "eveningHour",
+        "type": "integer",
+        "label": "Evening (hour)",
+        "min": 0,
+        "max": 23,
+        "step": 1,
+        "defaultValue": 18
+      },
+      {
+        "key": "nightHour",
+        "type": "integer",
+        "label": "Tonight (hour)",
+        "min": 0,
+        "max": 23,
+        "step": 1,
+        "defaultValue": 21
+      },
+      {
+        "key": "bareHoursPm",
+        "type": "boolean",
+        "label": "Read \"at 1\" to \"at 6\" as afternoon",
+        "defaultValue": true
+      },
+      {
+        "key": "weekStart",
+        "type": "enum",
+        "label": "First day of the week",
+        "options": [
+          "monday",
+          "sunday"
+        ],
+        "defaultValue": "monday"
+      },
+      {
+        "key": "endOfWeek",
+        "type": "enum",
+        "label": "End of week (friday, or the week's last day)",
+        "options": [
+          "friday",
+          "last"
+        ],
+        "defaultValue": "friday"
+      },
+      {
+        "key": "groupTasks",
+        "type": "boolean",
+        "label": "Group tasks by due date",
+        "defaultValue": true
+      },
+      {
+        "key": "keepDoneDays",
+        "type": "integer",
+        "label": "Archive completed tasks after (days, 0 = never)",
+        "min": 0,
+        "max": 3650,
+        "step": 1,
+        "defaultValue": 7
+      },
+      {
+        "key": "keepArchivedDays",
+        "type": "integer",
+        "label": "Delete archived tasks after (days, 0 = never)",
+        "min": 0,
+        "max": 3650,
+        "step": 1,
+        "defaultValue": 30
+      }
+    ]
+  }
+}
