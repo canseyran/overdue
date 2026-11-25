@@ -26,6 +26,8 @@ Item {
   property string text: ""
   // The last task saved while staying open, echoed under the line.
   property string savedTitle: ""
+  // The last Enter could not save; the line is kept so nothing is lost.
+  property bool notSaved: false
 
   property var service: null
   readonly property var strings: service ? service.strings : null
@@ -53,6 +55,7 @@ Item {
     findService()
     root.text = ""
     root.savedTitle = ""
+    root.notSaved = false
     input.text = ""
     root.opened = true
     Qt.callLater(function() { input.forceActiveFocus() })
@@ -81,6 +84,7 @@ Item {
     if (!findService()) return
     var title = root.preview ? root.preview.title : line
     var id = root.service.add(line)
+    root.notSaved = !id
     if (!id) return
     if (stayOpen) {
       root.savedTitle = title
@@ -192,10 +196,26 @@ Item {
           }
         }
 
+        // A save that failed: that it did, why, and what to do about it.
         Text {
           textFormat: Text.PlainText
           Layout.fillWidth: true
-          visible: root.savedTitle !== ""
+          visible: text !== ""
+          text: {
+            var problem = root.service ? root.service.problem : ""
+            if (root.notSaved) return root.t("quickAdd.notSaved") + (problem ? ". " + problem : "")
+            return problem
+          }
+          color: Commons.Color.urgent
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          wrapMode: Text.WordWrap
+        }
+
+        Text {
+          textFormat: Text.PlainText
+          Layout.fillWidth: true
+          visible: root.savedTitle !== "" && !root.notSaved
           text: root.t("quickAdd.saved") + ": " + root.savedTitle
           color: root.dim
           font.family: root.fontFamily

@@ -516,6 +516,18 @@ Panel {
             }
           }
 
+          // A save that failed: why, and what to do about it.
+          Text {
+            textFormat: Text.PlainText
+            width: parent.width
+            visible: text !== ""
+            text: root.service ? root.service.problem : ""
+            color: root.urgent
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
+            wrapMode: Text.WordWrap
+          }
+
           PanelSeparator { foreground: root.foreground }
 
           // ----------------------------------------------------- tabs
@@ -625,8 +637,10 @@ Panel {
 
               FormHint {
                 Layout.fillWidth: true
-                warn: root.formError === "title"
-                text: root.formError === "title" ? root.t("form.titleMissing") : ""
+                warn: root.formError === "title" || root.formError === "storage"
+                text: root.formError === "title" ? root.t("form.titleMissing")
+                  : root.formError === "storage" ? root.t("form.saveFailed")
+                  : ""
               }
 
               ActionLink {
@@ -674,7 +688,9 @@ Panel {
               width: parent.width
               visible: text !== ""
               // Only when a reschedule was not understood.
-              text: root.inputError ? root.t("panel.notUnderstood") : ""
+              text: !root.inputError ? ""
+                : root.service && root.service.problem !== "" ? root.t("form.saveFailed")
+                : root.t("panel.notUnderstood")
               color: root.inputError ? root.urgent : root.dim
               font.family: root.fontFamily
               font.pixelSize: Style.font.caption

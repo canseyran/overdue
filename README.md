@@ -319,6 +319,12 @@ Quick add, reminders and the command line keep working, but the bar icon
 needs Omarchy's built-in bar to reach the service, and shows as unavailable
 under a replacement bar.
 
+**It says changes can't be saved, or that the database was moved or deleted.**
+The shell keeps Overdue's database open while it runs. If the file is deleted
+or moved underneath it (for example to reset Overdue), the shell can't reopen it
+by itself. Run `omarchy restart shell`; a deleted database starts fresh and
+empty.
+
 **I changed the code and nothing happened.**
 The service is kept loaded and isn't hot-reloaded. Run `omarchy restart shell`.
 

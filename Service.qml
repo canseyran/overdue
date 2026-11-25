@@ -19,8 +19,9 @@ import "Store.js" as Store
 // machine sleeps, so a logind PrepareForSleep watch re-checks on resume
 // (NF-4).
 //
-// Plugins run inside the shell: every storage call is guarded so a bad row or
-// a locked database logs a warning instead of taking the desktop down.
+// Plugins run inside the shell: every storage call is caught, so a bad row or
+// a locked database logs a warning instead of taking the desktop down, and a
+// failed save is reported to the user (see `problem`).
 Item {
   id: root
 
@@ -46,7 +47,12 @@ Item {
   property double now: Date.now()
   property var settings: Model.settingsWith({})
   property bool ready: false
+  // Why the last storage write failed, or "" once one succeeds again.
   property string lastError: ""
+  // The same, said to the user: "" when all is well.
+  readonly property string problem: lastError === "" ? ""
+    : /readonly database/i.test(lastError) ? strings.t("error.databaseMoved")
+    : strings.t("error.storage").arg(lastError)
   // Midnight after the lifecycle (archive / delete old tasks) last ran; a
   // wake past it runs it again.
   property double maintainedDay: 0
@@ -79,13 +85,32 @@ Item {
     root.ready = true
   }
 
-  function guard(what, fn) {
+  // Storage calls. Plugins run inside the shell, so a failure logs a warning
+  // instead of throwing. Reads still work when writes do not (a database
+  // deleted while open), so only writes set and clear lastError.
+
+  // fn's result, or undefined when it failed.
+  function read(what, fn) {
     try {
       return fn()
     } catch (e) {
-      root.lastError = String(e)
       console.warn("overdue: " + what + " failed: " + e)
       return undefined
+    }
+  }
+
+  // Whether fn ran without an error. A `sweep` (the lifecycle's bulk update,
+  // which usually matches nothing) proves nothing about storage working, so
+  // it does not clear an earlier failure.
+  function write(what, fn, sweep) {
+    try {
+      fn()
+      if (!sweep) root.lastError = ""
+      return true
+    } catch (e) {
+      root.lastError = String(e)
+      console.warn("overdue: " + what + " failed: " + e)
+      return false
     }
   }
 
@@ -96,15 +121,16 @@ Item {
 
   function loadTasks() {
     var loadedAt = Date.now()
-    guard("load", function() {
+    write("maintain", function() {
       Store.maintain(loadedAt, root.settings.keepDoneDays, root.settings.keepArchivedDays)
-      root.tasks = Store.all()
-    })
+    }, true)
+    var all = read("load", function() { return Store.all() })
+    if (all) root.tasks = all
     root.maintainedDay = Model.nextMidnight(loadedAt)
   }
 
   function loadSettings() {
-    guard("settings", function() {
+    read("settings", function() {
       var raw = {}
       try { raw = JSON.parse(Store.getMeta("settings", "{}")) || {} } catch (e) { raw = {} }
       root.settings = Model.settingsWith(raw)
@@ -132,7 +158,7 @@ Item {
     var keepChanged = next.keepDoneDays !== root.settings.keepDoneDays
       || next.keepArchivedDays !== root.settings.keepArchivedDays
     root.settings = next
-    guard("save settings", function() { Store.setMeta("settings", JSON.stringify(next)) })
+    write("save settings", function() { Store.setMeta("settings", JSON.stringify(next)) })
     if (keepChanged) loadTasks()
     schedule()
     return true
@@ -281,7 +307,7 @@ Item {
   }
 
   function nag(task, at) {
-    guard("nag", function() {
+    write("nag", function() {
       Store.update(task.id, { nagCount: (task.nagCount || 0) + 1, lastNagAt: at })
     })
     var args = notifyArgs("normal", root.notificationIds[String(task.id)])
@@ -337,7 +363,7 @@ Item {
   function taskFor(id) {
     var taskId = Number(id)
     for (var i = 0; i < root.tasks.length; i++) if (root.tasks[i].id === taskId) return root.tasks[i]
-    return guard("get", function() { return Store.get(taskId) }) || null
+    return read("get", function() { return Store.get(taskId) }) || null
   }
 
   function fieldsFromParse(parsed) {
@@ -358,19 +384,26 @@ Item {
     return fields
   }
 
-  // Returns the new task id, or 0.
+  // Returns the new task id, or 0 when it could not be saved.
   function insertTask(fields) {
     fields.createdAt = Date.now()
-    var id = guard("add", function() { return Store.insert(fields) }) || 0
+    var id = 0
+    write("add", function() { id = Store.insert(fields) })
     reload()
     return id
   }
 
+  // Whether it was saved.
   function updateTask(task, fields, what) {
     if (fields.dueAt !== undefined && fields.dueAt !== task.dueAt) withFreshNag(fields)
-    guard(what, function() { Store.update(task.id, fields) })
+    var saved = write(what, function() { Store.update(task.id, fields) })
     reload()
+    return saved
   }
+
+  // The operations below return whether they were done: false for an
+  // unknown task, a line that was not understood, or a failed save (then
+  // lastError says why).
 
   // Returns the new task id, or 0.
   function add(text) {
@@ -384,16 +417,16 @@ Item {
     if (!task || task.doneAt || task.archivedAt) return false
     var completedAt = Date.now()
     var recur = Parser.recurFromString(task.recur)
-    guard("complete", function() {
+    var saved = write("complete", function() {
       // A recurring task moves to its next occurrence instead of closing.
       if (recur && task.dueAt !== null)
         Store.update(task.id, withFreshNag({ dueAt: Parser.nextOccurrence(recur, task.dueAt, completedAt) }))
       else
         Store.update(task.id, { doneAt: completedAt })
     })
-    settleNotification(task, "notify.done")
+    if (saved) settleNotification(task, "notify.done")
     reload()
-    return true
+    return saved
   }
 
   // Back to Tasks, from Completed or Archived. Counted as already reminded
@@ -401,27 +434,26 @@ Item {
   function restore(id) {
     var task = taskFor(id)
     if (!task || (!task.doneAt && !task.archivedAt)) return false
-    updateTask(task, { doneAt: null, archivedAt: null, nagCount: 0, lastNagAt: Date.now() }, "restore")
-    return true
+    return updateTask(task, { doneAt: null, archivedAt: null, nagCount: 0, lastNagAt: Date.now() }, "restore")
   }
 
   // To Archived, by hand: an open task you are dropping, or a completed one.
   function archive(id) {
     var task = taskFor(id)
     if (!task || task.archivedAt) return false
-    guard("archive", function() { Store.update(task.id, { archivedAt: Date.now() }) })
-    settleNotification(task, "notify.archived")
+    var saved = write("archive", function() { Store.update(task.id, { archivedAt: Date.now() }) })
+    if (saved) settleNotification(task, "notify.archived")
     reload()
-    return true
+    return saved
   }
 
   function remove(id) {
     var task = taskFor(id)
     if (!task) return false
-    guard("remove", function() { Store.remove(task.id) })
-    settleNotification(task, "notify.removed")
+    var saved = write("remove", function() { Store.remove(task.id) })
+    if (saved) settleNotification(task, "notify.removed")
     reload()
-    return true
+    return saved
   }
 
   // App-wide snooze: hold every reminder and the daily review for `minutes`.
@@ -432,17 +464,18 @@ Item {
     if (!(duration > 0)) duration = root.settings.snoozeMin
     duration = Math.min(duration, Model.SETTINGS.snoozeMin.max)
     root.snoozedUntil = Date.now() + duration * 60000
-    guard("snooze", function() { Store.setMeta("snoozedUntil", String(root.snoozedUntil)) })
+    // Held for this session even if it cannot be saved.
+    var saved = write("snooze", function() { Store.setMeta("snoozedUntil", String(root.snoozedUntil)) })
     closeReminders()
     schedule()
-    return true
+    return saved
   }
 
   function resume() {
     root.snoozedUntil = 0
-    guard("resume", function() { Store.setMeta("snoozedUntil", "0") })
+    var saved = write("resume", function() { Store.setMeta("snoozedUntil", "0") })
     schedule()
-    return true
+    return saved
   }
 
   // Re-parse an edited line (TL-2): title, date, tags and the rest.
@@ -450,8 +483,7 @@ Item {
     var task = taskFor(id)
     var input = String(text || "").trim()
     if (!task || !input) return false
-    updateTask(task, fieldsFromParse(parse(input)), "edit")
-    return true
+    return updateTask(task, fieldsFromParse(parse(input)), "edit")
   }
 
   // The edit form (and the panel's add form): three boxes.
@@ -460,8 +492,8 @@ Item {
   //   dueText    the due date in words; empty means none. When it is empty
   //              and the Task box holds a date, that date is used.
   //   descText   the description as written.
-  // id 0 adds a task. Returns "" when saved, or which box was not understood:
-  // "title" or "due".
+  // id 0 adds a task. Returns "" when saved, which box was not understood
+  // ("title" or "due"), or "storage" when saving failed.
   function saveForm(id, titleText, dueText, descText) {
     if (String(titleText || "").trim() === "") return "title"
     var title = parse(String(titleText))
@@ -475,19 +507,17 @@ Item {
     }
     var desc = String(descText || "").replace(/\s+$/, "").replace(/^\s*\n/, "")
     if (desc !== "" || id) fields.description = desc !== "" ? desc : (title.description || "")
-    if (!id) return insertTask(fields) ? "" : "title"
+    if (!id) return insertTask(fields) ? "" : "storage"
     var task = taskFor(id)
     if (!task) return "title"
-    updateTask(task, fields, "edit")
-    return ""
+    return updateTask(task, fields, "edit") ? "" : "storage"
   }
 
   // Only the description; empty clears it. Taken as written, never parsed.
   function describe(id, text) {
     var task = taskFor(id)
     if (!task) return false
-    updateTask(task, { description: String(text || "").trim() }, "describe")
-    return true
+    return updateTask(task, { description: String(text || "").trim() }, "describe")
   }
 
   // Only the date: "tomorrow 9am", "in 2h", or "none" to clear it.
@@ -500,10 +530,10 @@ Item {
       due = parse(input).dueAt
       if (due === null) return false
     }
-    guard("reschedule", function() { Store.update(task.id, withFreshNag({ dueAt: due })) })
-    settleNotification(task, "notify.rescheduled")
+    var saved = write("reschedule", function() { Store.update(task.id, withFreshNag({ dueAt: due })) })
+    if (saved) settleNotification(task, "notify.rescheduled")
     reload()
-    return true
+    return saved
   }
 
   // ------------------------------------------------------------- formatting
@@ -625,7 +655,7 @@ Item {
   // ----------------------------------------------------------------- review
 
   function saveReview() {
-    guard("save review", function() {
+    write("save review", function() {
       Store.setMeta("reviewLastAt", String(root.reviewLastAt))
       Store.setMeta("reviewLaterUntil", String(root.reviewLaterUntil))
     })
@@ -703,6 +733,13 @@ Item {
     }
   }
 
+  // An IPC answer: "ok", or why not.
+  function ipcReply(id, done) {
+    if (done) return "ok"
+    if (!taskFor(id)) return "unknown task"
+    return root.lastError !== "" ? "error: " + root.lastError : "not done"
+  }
+
   // QML method names cannot be JavaScript reserved words, so "export" is
   // exportJson.
   ShellIpc {
@@ -710,25 +747,35 @@ Item {
 
     // omarchy-shell canseyran.overdue add "call mom tomorrow 3pm"
     function add(text: string): string {
+      if (String(text || "").trim() === "") return "error: nothing to add"
       var id = root.add(text)
-      if (!id) return "error: nothing to add"
+      if (!id) return "error: " + root.lastError
       var task = root.taskFor(id)
       return task ? JSON.stringify(root.taskJson(task)) : String(id)
     }
 
-    function done(id: string): string { return root.complete(id) ? "ok" : "unknown task" }
+    function done(id: string): string { return root.ipcReply(id, root.complete(id)) }
     // App-wide: no reminders for this many minutes.
     function snooze(minutes: string): string {
-      root.snoozeAll(minutes)
-      return new Date(root.snoozedUntil).toISOString()
+      var saved = root.snoozeAll(minutes)
+      var until = new Date(root.snoozedUntil).toISOString()
+      // Still held until then, but only until the shell restarts.
+      return saved ? until : until + " (not saved: " + root.lastError + ")"
     }
-    function resume(): string { root.resume(); return "ok" }
-    function restore(id: string): string { return root.restore(id) ? "ok" : "unknown task" }
-    function archive(id: string): string { return root.archive(id) ? "ok" : "unknown task" }
-    function remove(id: string): string { return root.remove(id) ? "ok" : "unknown task" }
-    function edit(id: string, text: string): string { return root.edit(id, text) ? "ok" : "unknown task" }
-    function describe(id: string, text: string): string { return root.describe(id, text) ? "ok" : "unknown task" }
-    function reschedule(id: string, when: string): string { return root.reschedule(id, when) ? "ok" : "not understood" }
+    function resume(): string { return root.resume() ? "ok" : "error: " + root.lastError }
+    function restore(id: string): string { return root.ipcReply(id, root.restore(id)) }
+    function archive(id: string): string { return root.ipcReply(id, root.archive(id)) }
+    function remove(id: string): string { return root.ipcReply(id, root.remove(id)) }
+    function edit(id: string, text: string): string {
+      if (String(text || "").trim() === "") return "error: nothing to save"
+      return root.ipcReply(id, root.edit(id, text))
+    }
+    function describe(id: string, text: string): string { return root.ipcReply(id, root.describe(id, text)) }
+    function reschedule(id: string, when: string): string {
+      var input = String(when || "").trim()
+      if (input !== "" && input.toLowerCase() !== "none" && root.parse(input).dueAt === null) return "not understood"
+      return root.ipcReply(id, root.reschedule(id, when))
+    }
 
     // Open tasks in panel order.
     function list(): string {
@@ -737,7 +784,7 @@ Item {
 
     // NF-3 backup: every task, done ones included, plus settings.
     function exportJson(): string {
-      var all = root.guard("export", function() { return Store.all() }) || []
+      var all = root.read("export", function() { return Store.all() }) || []
       return JSON.stringify({
         app: root.pluginId,
         version: root.manifest ? root.manifest.version : "",
