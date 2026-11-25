@@ -105,7 +105,9 @@ button's tooltip tells you which.
 
 ## Install
 
-Requires Omarchy 4.5 or newer.
+Requires Omarchy 4.5 or newer. There are no other dependencies: everything it
+uses (Quickshell, Qt's SQLite storage, `gdbus` and `omarchy-notification-send`)
+ships with Omarchy.
 
 ```bash
 omarchy plugin add https://github.com/canseyran/overdue --enable
@@ -139,6 +141,22 @@ command. SUPER+SHIFT+T (Activity), SUPER+SHIFT+N (Editor) and SUPER+CTRL+N
 (Network) are already taken by Omarchy.
 
 </details>
+
+### Uninstall
+
+```bash
+omarchy plugin remove canseyran.overdue
+```
+
+This removes the plugin and its bar icon. If you added the key bindings, delete
+them from `~/.config/hypr/bindings.lua`. Your tasks are kept, so a reinstall picks
+them up again. To delete them too, restart the shell first, then remove the
+database:
+
+```bash
+omarchy restart shell
+rm ~/.local/share/quickshell/QML/OfflineStorage/Databases/1ffadc2eda451d159cd6b8402db895a0.*
+```
 
 ## Writing tasks
 
