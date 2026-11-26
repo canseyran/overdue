@@ -5,7 +5,7 @@
   "version": "0.1.1",
   "author": "canseyran",
   "license": "MIT",
-  "description": "Tasks with natural-language quick add that nag you until they're done.",
+  "description": "Tasks that nag you until they're done. Summon quick add from anywhere and type the task the way you'd say it, like \"pay rent friday 9am monthly #home !1\". A live preview shows the date, repeat, tags and priority before you save. When a task falls due, a notification with Complete and Snooze keeps coming back until you act, and a daily review catches the tasks with no due date. Lives in your bar, works by keyboard or mouse, respects quiet hours, follows your theme, and keeps everything local.",
   "kinds": ["service", "bar-widget", "overlay"],
   "keepLoaded": true,
   "entryPoints": {
