@@ -204,7 +204,8 @@ you type; once you change the Due box by hand, it's left alone.
 | Key | Action |
 |---|---|
 | <kbd>j</kbd> / <kbd>k</kbd>, <kbd>↓</kbd> / <kbd>↑</kbd> | Move |
-| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd>, <kbd>h</kbd> / <kbd>l</kbd>, <kbd>←</kbd> / <kbd>→</kbd> | Previous / next tab |
+| <kbd>t</kbd> / <kbd>c</kbd> / <kbd>v</kbd> | Tasks / Completed / Archived (each tab shows its key) |
+| <kbd>h</kbd> / <kbd>l</kbd>, <kbd>←</kbd> / <kbd>→</kbd> | Previous / next tab |
 | <kbd>Space</kbd> | Complete a task, or restore it from Completed or Archived |
 | <kbd>e</kbd>, <kbd>Enter</kbd> | Edit |
 | <kbd>r</kbd> | Reschedule (`tomorrow 9am`, `in 2h`, `none`) |
@@ -214,6 +215,12 @@ you type; once you change the Due box by hand, it's left alone.
 | <kbd>s</kbd> | Snooze all reminders; press again to resume |
 | <kbd>,</kbd> | Settings |
 | <kbd>Esc</kbd> | Step back: cancel a delete, leave settings, clear the search, then close |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Next / previous bar panel, as in every Omarchy panel |
+
+In settings, <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> walk the controls
+from top to bottom. <kbd>Space</kbd> or <kbd>Enter</kbd> flips a switch; in a
+choice, <kbd>h</kbd> / <kbd>l</kbd> or <kbd>←</kbd> / <kbd>→</kbd> move between
+the options and <kbd>Space</kbd> or <kbd>Enter</kbd> picks one.
 
 In quick add, <kbd>Enter</kbd> saves and closes, <kbd>Shift</kbd>+<kbd>Enter</kbd>
 saves and keeps the line open for the next task, and <kbd>Esc</kbd> clears the

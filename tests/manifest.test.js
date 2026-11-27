@@ -57,3 +57,16 @@ test("every literal catalog key the QML asks for exists", () => {
   assert.ok(keys.size > 50)
   for (const key of keys) assert.ok(key in catalog, key)
 })
+
+test("each list has its own key, and no other panel key takes it", () => {
+  const src = fs.readFileSync(path.join(root, "TaskPanel.qml"), "utf8")
+  const map = src.match(/tabKeys: \(\{([^}]*)\}\)/)
+  assert.ok(map, "tabKeys in TaskPanel.qml")
+  const tabKeys = Object.fromEntries([...map[1].matchAll(/(\w+): "(.)"/g)].map(m => [m[1], m[2]]))
+  assert.deepEqual(Object.keys(tabKeys).sort(), ["archived", "done", "tasks"])
+  const letters = Object.values(tabKeys)
+  assert.equal(new Set(letters).size, letters.length)
+  const handler = src.slice(src.indexOf("function handleKey"), src.indexOf("// ------------------------------------------------------------- the panel"))
+  const taken = new Set([...handler.matchAll(/text === "(.)"/g)].map(m => m[1]))
+  for (const letter of letters) assert.ok(!taken.has(letter), letter + " is already a panel key")
+})

@@ -15,14 +15,17 @@ import "Parser.js" as Parser
 // Everything works with the mouse alone, and everything has a key. Every
 // button's tooltip names its key.
 //
-//   Tabs        Tasks (grouped Today / Upcoming / No due date, or one list),
-//               Completed, Archived.  Tab / Shift+Tab, h / l or Left / Right cycle.
+//   Lists       t Tasks (grouped Today / Upcoming / No due date, or one list),
+//               c Completed, v Archived; h / l or Left / Right step through them.
 //   Move        j/k or Up/Down
 //   Space       complete a task, or restore it (Completed, Archived)
 //   Enter, e    edit (the line is parsed again)        r  reschedule
 //   d, Delete   delete: to Archived; in Archived, for good (press twice)
 //   a           add          /  search      s  snooze all / resume
 //   ,           settings     Esc  step back / close
+//   Tab         the next bar panel, as in every Omarchy panel (Shift+Tab: the
+//               previous one). In settings, Tab / Shift+Tab walk the controls;
+//               Space / Enter toggle a switch or pick a choice.
 //
 // Everything shown is bound to the service; this file keeps view state only.
 Panel {
@@ -61,6 +64,8 @@ Panel {
   property int armedDeleteId: 0
 
   readonly property var tabs: ["tasks", "done", "archived"]
+  // Each list's own key, shown on its tile.
+  readonly property var tabKeys: ({ tasks: "t", done: "c", archived: "v" })
   readonly property var strings: service ? service.strings : null
   readonly property var appSettings: service ? service.settings : Model.settingsWith({})
   readonly property double now: service ? service.now : Date.now()
@@ -135,6 +140,7 @@ Panel {
   readonly property Item flick: panel.loadedContent ? panel.loadedContent.flick : null
   readonly property Item input: panel.loadedContent ? panel.loadedContent.input : null
   readonly property Item rowRepeater: panel.loadedContent ? panel.loadedContent.rowRepeater : null
+  readonly property Item settingsItem: panel.loadedContent ? panel.loadedContent.settingsItem : null
 
   function focusList() {
     Qt.callLater(function() { if (panel.loadedContent) panel.loadedContent.forceActiveFocus() })
@@ -145,7 +151,7 @@ Panel {
   function setTab(next) {
     if (root.tabs.indexOf(next) === -1) return
     root.tab = next
-    root.settingsOpen = false
+    if (root.settingsOpen) closeSettings()
     root.cursor = 0
     root.cursorActive = true
     root.armedDeleteId = 0
@@ -284,9 +290,30 @@ Panel {
 
   function stepBack() {
     if (root.armedDeleteId) { root.armedDeleteId = 0; return }
-    if (root.settingsOpen) { root.settingsOpen = false; return }
+    if (root.settingsOpen) { closeSettings(); return }
     if (root.query !== "") { root.query = ""; root.inputText = ""; return }
     root.close()
+  }
+
+  // Leaving settings takes the keys back from whichever control had them.
+  function closeSettings() {
+    root.settingsOpen = false
+    if (flick) flick.contentY = 0
+    focusList()
+  }
+
+  // Keep the settings row whose control Tab landed on in view, caption too.
+  function revealFocus(focused) {
+    if (!root.settingsOpen || !focused || !flick || !settingsItem) return
+    var item = focused
+    while (item && item.parent !== settingsItem) item = item.parent
+    if (!item) return
+    var margin = Style.space(12)
+    var top = item.mapToItem(flick.contentItem, 0, 0).y
+    var bottom = top + item.height
+    var maxY = Math.max(0, flick.contentHeight - flick.height)
+    if (top < flick.contentY + margin) flick.contentY = Math.max(0, top - margin)
+    else if (bottom > flick.contentY + flick.height - margin) flick.contentY = Math.min(maxY, bottom + margin - flick.height)
   }
 
   function toggleSettings() {
@@ -372,6 +399,14 @@ Panel {
     fn(root.selected)
   }
 
+  // Open the next (direction 1) or previous bar panel. The bar finds the
+  // current panel by its slot's widget, which is the BarWidget hosting this
+  // panel, not this nested Panel, so Panel.switchPanel() would find nothing.
+  function switchBarPanel(direction) {
+    if (root.bar && typeof root.bar.switchPanelFrom === "function") return root.bar.switchPanelFrom(root.barIdentity, direction)
+    return false
+  }
+
   // The panel's keys. Omarchy's PanelKeyCatcher reads x as delete and Space
   // as activate; here Space completes, so the panel handles its own keys
   // (same structure, Left/Right through Util.readingKey so they follow
@@ -382,17 +417,21 @@ Panel {
     var key = Util.readingKey(event, true)
 
     if (event.key === Qt.Key_Escape) { stepBack(); return true }
-    // Tab cycles the lists here (Omarchy panels otherwise move to the next
-    // bar panel with it). In settings it leaves them for the lists.
+    // Tab belongs to the bar: the next (Shift+Tab: previous) bar panel, as
+    // PanelKeyCatcher does it. In settings it is left alone, so Qt's focus
+    // chain walks the controls.
     if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
-      if (root.settingsOpen) root.settingsOpen = false
-      else stepTab(shift || event.key === Qt.Key_Backtab ? -1 : 1)
+      if (root.settingsOpen) return false
+      switchBarPanel(shift || event.key === Qt.Key_Backtab ? -1 : 1)
       return true
     }
     if (event.key === Qt.Key_Down || text === "j") { moveCursor(1); return true }
     if (event.key === Qt.Key_Up || text === "k") { moveCursor(-1); return true }
     if (text === ",") { toggleSettings(); return true }
     if (text === "s") { toggleSnooze(); return true }
+    for (var i = 0; i < root.tabs.length; i++)
+      if (text === root.tabKeys[root.tabs[i]]) { setTab(root.tabs[i]); return true }
+    // Space, Enter, h / l and the rest go to the focused settings control.
     if (root.settingsOpen) return false
 
     if (key === Qt.Key_Right || text === "l") { stepTab(1); return true }
@@ -432,9 +471,10 @@ Panel {
       property alias dueField: dueField
       property alias descField: descField
       property alias rowRepeater: rowRepeater
+      readonly property Item settingsItem: settingsView.item
 
       anchors.fill: parent
-      implicitHeight: column.implicitHeight
+      implicitHeight: header.implicitHeight + column.spacing + column.implicitHeight
       focus: true
 
       // Keys go to an input or a settings field while one is being edited.
@@ -446,9 +486,92 @@ Panel {
         if (root.handleKey(event)) event.accepted = true
       }
 
+      readonly property Item focusedItem: Window.activeFocusItem
+      onFocusedItemChanged: root.revealFocus(focusedItem)
+
+      // The title bar stays put; everything under it scrolls.
+      Column {
+        id: header
+        width: parent.width
+        spacing: column.spacing
+
+        // ------------------------------------------------------ hero
+        PanelHero {
+          width: parent.width
+          title: root.settingsOpen ? root.t("settings.title") : root.t("panel.title")
+          meta: {
+            if (!root.service) return root.t("widget.unavailable")
+            if (root.snoozed) return root.t("snooze.until").arg(root.service.whenLabel(root.service.snoozedUntil))
+            var summary = root.service.summary
+            var parts = []
+            if (summary.overdue > 0) parts.push(root.tn("widget.overdue", summary.overdue))
+            if (summary.today > 0) parts.push(root.tn("widget.today", summary.today))
+            return parts.length > 0 ? parts.join(" · ") : root.t("widget.idle")
+          }
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+
+          iconComponent: Component {
+            Text {
+              textFormat: Text.PlainText
+              text: Model.stateGlyph(root.service ? root.service.summary.state : "idle", root.snoozed)
+              color: root.foreground
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.display
+            }
+          }
+
+          trailingControl: Component {
+            Row {
+              spacing: Style.space(6)
+
+              HeroButton {
+                visible: !root.settingsOpen
+                glyph: String.fromCodePoint(0xF0415) // plus
+                tooltip: root.withKey(root.t("action.add"), "a")
+                onClicked: root.openForm("add", null)
+              }
+
+              HeroButton {
+                visible: !root.settingsOpen
+                glyph: String.fromCodePoint(root.snoozed ? 0xF040A : 0xF03E4) // play / pause
+                active: root.snoozed
+                tooltip: root.snoozed ? root.withKey(root.t("snooze.resume"), "s")
+                  : root.withKey(root.t("snooze.for").arg(Model.shortDuration(root.appSettings.snoozeMin)), "s")
+                onClicked: root.toggleSnooze()
+              }
+
+              HeroButton {
+                glyph: String.fromCodePoint(root.settingsOpen ? 0xF004D : 0xF0493) // arrow-left / cog
+                tooltip: root.settingsOpen ? root.withKey(root.t("settings.back"), "Esc") : root.withKey(root.t("settings.title"), ",")
+                onClicked: root.toggleSettings()
+              }
+            }
+          }
+        }
+
+        // A save that failed: why, and what to do about it.
+        Text {
+          textFormat: Text.PlainText
+          width: parent.width
+          visible: text !== ""
+          text: root.service ? root.service.problem : ""
+          color: root.urgent
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          wrapMode: Text.WordWrap
+        }
+
+        PanelSeparator { foreground: root.foreground }
+      }
+
       Flickable {
         id: flick
-        anchors.fill: parent
+        anchors.top: header.bottom
+        anchors.topMargin: column.spacing
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
         contentWidth: width
         contentHeight: column.implicitHeight
         clip: true
@@ -460,75 +583,6 @@ Panel {
           id: column
           width: flick.width
           spacing: Style.space(16)
-
-          // ------------------------------------------------------ hero
-          PanelHero {
-            width: parent.width
-            title: root.settingsOpen ? root.t("settings.title") : root.t("panel.title")
-            meta: {
-              if (!root.service) return root.t("widget.unavailable")
-              if (root.snoozed) return root.t("snooze.until").arg(root.service.whenLabel(root.service.snoozedUntil))
-              var summary = root.service.summary
-              var parts = []
-              if (summary.overdue > 0) parts.push(root.tn("widget.overdue", summary.overdue))
-              if (summary.today > 0) parts.push(root.tn("widget.today", summary.today))
-              return parts.length > 0 ? parts.join(" · ") : root.t("widget.idle")
-            }
-            foreground: root.foreground
-            fontFamily: root.fontFamily
-
-            iconComponent: Component {
-              Text {
-                textFormat: Text.PlainText
-                text: Model.stateGlyph(root.service ? root.service.summary.state : "idle", root.snoozed)
-                color: root.foreground
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.display
-              }
-            }
-
-            trailingControl: Component {
-              Row {
-                spacing: Style.space(6)
-
-                HeroButton {
-                  visible: !root.settingsOpen
-                  glyph: String.fromCodePoint(0xF0415) // plus
-                  tooltip: root.withKey(root.t("action.add"), "a")
-                  onClicked: root.openForm("add", null)
-                }
-
-                HeroButton {
-                  visible: !root.settingsOpen
-                  glyph: String.fromCodePoint(root.snoozed ? 0xF040A : 0xF03E4) // play / pause
-                  active: root.snoozed
-                  tooltip: root.snoozed ? root.withKey(root.t("snooze.resume"), "s")
-                    : root.withKey(root.t("snooze.for").arg(Model.shortDuration(root.appSettings.snoozeMin)), "s")
-                  onClicked: root.toggleSnooze()
-                }
-
-                HeroButton {
-                  glyph: String.fromCodePoint(root.settingsOpen ? 0xF004D : 0xF0493) // arrow-left / cog
-                  tooltip: root.settingsOpen ? root.withKey(root.t("settings.back"), "Esc") : root.withKey(root.t("settings.title"), ",")
-                  onClicked: root.toggleSettings()
-                }
-              }
-            }
-          }
-
-          // A save that failed: why, and what to do about it.
-          Text {
-            textFormat: Text.PlainText
-            width: parent.width
-            visible: text !== ""
-            text: root.service ? root.service.problem : ""
-            color: root.urgent
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
-            wrapMode: Text.WordWrap
-          }
-
-          PanelSeparator { foreground: root.foreground }
 
           // ----------------------------------------------------- tabs
           Row {
@@ -877,6 +931,11 @@ Panel {
         font.family: root.fontFamily
         font.pixelSize: Style.font.caption
       }
+
+      KeyCap {
+        anchors.verticalCenter: parent.verticalCenter
+        text: root.tabKeys[tile.key]
+      }
     }
 
     MouseArea {
@@ -889,7 +948,7 @@ Panel {
 
     PanelToolTip {
       visible: tileMouse.containsMouse
-      text: root.withKey(root.t("tab." + tile.key), root.t("key.tab"))
+      text: root.withKey(root.t("tab." + tile.key), root.tabKeys[tile.key])
     }
   }
 
@@ -984,22 +1043,9 @@ Panel {
         font.pixelSize: Style.font.caption
       }
 
-      Rectangle {
+      KeyCap {
         anchors.verticalCenter: parent.verticalCenter
-        width: keyText.implicitWidth + Style.space(8)
-        height: keyText.implicitHeight + Style.space(2)
-        radius: Math.min(Style.cornerRadius, height / 2)
-        color: root.alpha(root.foreground, 0.08)
-
-        Text {
-          id: keyText
-          anchors.centerIn: parent
-          textFormat: Text.PlainText
-          text: link.keyName
-          color: root.dim
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
-        }
+        text: link.keyName
       }
     }
 
@@ -1009,6 +1055,24 @@ Panel {
       hoverEnabled: true
       cursorShape: Qt.PointingHandCursor
       onClicked: link.clicked()
+    }
+  }
+
+  // A key's name in a small cap, beside the control it works.
+  component KeyCap: Rectangle {
+    property alias text: keyText.text
+    width: keyText.implicitWidth + Style.space(8)
+    height: keyText.implicitHeight + Style.space(2)
+    radius: Math.min(Style.cornerRadius, height / 2)
+    color: root.alpha(root.foreground, 0.08)
+
+    Text {
+      id: keyText
+      anchors.centerIn: parent
+      textFormat: Text.PlainText
+      color: root.dim
+      font.family: root.fontFamily
+      font.pixelSize: Style.font.caption
     }
   }
 

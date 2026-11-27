@@ -10,6 +10,10 @@ import "Model.js" as Model
 // the control in a fixed-width column on the right, so all controls line up.
 // Descriptions with an example fill it in from the current value.
 //
+// Tab / Shift+Tab walk every control top to bottom. A switch toggles with
+// Space or Enter; a choice group walks its chips with h / l or Left / Right
+// and picks with Space or Enter; number and text fields take typing.
+//
 // Changes go out through changeRequested; TaskPanel writes them to the
 // service and to the widget's shell.json entry, so the bar settings show the
 // same values.
@@ -170,6 +174,14 @@ Column {
         to: numberRow.to
         value: Number(root.settings[numberRow.key]) || 0
         onModified: function(value) { if (value !== root.settings[numberRow.key]) root.changeRequested(numberRow.key, value) }
+        // Esc drops what was typed and gives the keys back to the panel, as
+        // in the text rows; a second Esc leaves settings.
+        Keys.onEscapePressed: function(event) {
+          var spin = number.field
+          if (spin.contentItem) spin.contentItem.text = spin.textFromValue(spin.value, spin.locale)
+          spin.focus = false
+          event.accepted = true
+        }
       }
     }
   }
@@ -185,12 +197,30 @@ Column {
     Caption { key: toggleRow.key }
 
     Control {
-      ToggleSwitch {
+      // Sized to the track plus the focus ring's room on the sides, so the
+      // ring neither moves the switch, grows the row, nor gets clipped at
+      // the panel's edge.
+      Item {
         anchors.right: parent.right
-        cursorRing: false
-        checked: root.settings[toggleRow.key] === true
-        foreground: root.foreground
-        onToggled: root.changeRequested(toggleRow.key, root.settings[toggleRow.key] !== true)
+        width: toggle.trackWidth + toggle.cursorPad * 2
+        height: toggle.trackHeight
+
+        ToggleSwitch {
+          id: toggle
+          anchors.centerIn: parent
+          activeFocusOnTab: true
+          cursorRing: activeFocus
+          hasCursor: activeFocus
+          checked: root.settings[toggleRow.key] === true
+          foreground: root.foreground
+          onToggled: root.changeRequested(toggleRow.key, root.settings[toggleRow.key] !== true)
+          Keys.onPressed: function(event) {
+            if (event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+              toggle.toggled()
+              event.accepted = true
+            }
+          }
+        }
       }
     }
   }
@@ -209,7 +239,7 @@ Column {
 
     ButtonGroup {
       Layout.alignment: Qt.AlignTop
-      focusable: false
+      focusable: true
       foreground: root.foreground
       fontFamily: root.fontFamily
       fontSize: Style.font.caption
